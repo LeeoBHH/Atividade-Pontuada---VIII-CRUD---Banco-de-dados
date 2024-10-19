@@ -26,36 +26,34 @@ def salvar_funcionario(funcionario):
 
 def listar_todos_funcionarios():
     sessao = Sessao()
-    funcionarios = sessao.query(Funcionario).all()
     lista_funcionarios = []
-    for funcionario in funcionarios:
+    for funcionario in sessao.execute("SELECT * FROM funcionarios").fetchall():
         lista_funcionarios.append(f"Nome: {funcionario.nome}, CPF: {funcionario.cpf}, Setor: {funcionario.setor}, Salário: R$ {funcionario.salario:.2f}, Telefone: {funcionario.telefone}")
     sessao.close()
     return lista_funcionarios
 
 def pesquisar_um_funcionario(cpf):
     sessao = Sessao()
-    funcionario = sessao.query(Funcionario).filter(Funcionario.cpf == cpf).first()
+    funcionario = sessao.execute("SELECT * FROM funcionarios WHERE cpf = :cpf", {'cpf': cpf}).fetchone()
     sessao.close()
     return funcionario
 
 def atualizar_funcionario(funcionario):
     sessao = Sessao()
-    sessao.merge(funcionario)
+    sessao.execute(
+        "UPDATE funcionarios SET nome = :nome, idade = :idade, setor = :setor, funcao = :funcao, salario = :salario, telefone = :telefone WHERE cpf = :cpf",
+        {'nome': funcionario.nome, 'idade': funcionario.idade, 'setor': funcionario.setor, 'funcao': funcionario.funcao, 'salario': funcionario.salario, 'telefone': funcionario.telefone, 'cpf': funcionario.cpf}
+    )
     sessao.commit()
     sessao.close()
     print("Funcionário atualizado com sucesso!")
 
 def excluir_funcionario(cpf):
     sessao = Sessao()
-    funcionario = sessao.query(Funcionario).filter(Funcionario.cpf == cpf).first()
-    if funcionario:
-        sessao.delete(funcionario)
-        sessao.commit()
-        print("Funcionário excluído com sucesso!")
-    else:
-        print("Funcionário não encontrado.")
+    sessao.execute("DELETE FROM funcionarios WHERE cpf = :cpf", {'cpf': cpf})
+    sessao.commit()
     sessao.close()
+    print("Funcionário excluído com sucesso!")
 
 while True:
     print("\n=== RH System ===")
