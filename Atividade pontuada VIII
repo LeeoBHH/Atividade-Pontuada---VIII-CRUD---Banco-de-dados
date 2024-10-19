@@ -1,6 +1,8 @@
-import os
 from sqlalchemy import create_engine, Column, String, Integer, Float
 from sqlalchemy.orm import sessionmaker, declarative_base
+
+# Leonardo Araujo De Miranda Dos Santos
+# G93313
 
 Base = declarative_base()
 engine = create_engine('sqlite:///funcionarios.db')
@@ -9,7 +11,7 @@ Sessao = sessionmaker(bind=engine)
 class Funcionario(Base):
     __tablename__ = 'funcionarios'
     
-    cpf = Column(String)
+    cpf = Column(String, primary_key=True)
     nome = Column(String)
     idade = Column(Integer)
     setor = Column(String)
@@ -17,69 +19,80 @@ class Funcionario(Base):
     salario = Column(Float)
     telefone = Column(String)
 
-def salvar_funcionario(funcionario):
+Base.metadata.create_all(engine)
+
+def salvar_funcionario(cpf, nome, idade, setor, funcao, salario, telefone):
     sessao = Sessao()
+    funcionario = Funcionario(cpf=cpf, nome=nome, idade=idade, setor=setor, funcao=funcao, salario=salario, telefone=telefone)
     sessao.add(funcionario)
     sessao.commit()
     sessao.close()
-    print("Funcionário adicionado com sucesso!")
+    print("Funcionário adicionado!")
 
-def listar_todos_funcionarios():
+def listar_funcionarios():
     sessao = Sessao()
-    lista_funcionarios = []
-    for funcionario in sessao.execute("SELECT * FROM funcionarios").fetchall():
-        lista_funcionarios.append(f"Nome: {funcionario.nome}, CPF: {funcionario.cpf}, Setor: {funcionario.setor}, Salário: R$ {funcionario.salario:.2f}, Telefone: {funcionario.telefone}")
+    funcionarios = sessao.query(Funcionario).all()
+    for funcionario in funcionarios:
+        print(f"Nome: {funcionario.nome}, CPF: {funcionario.cpf}, Setor: {funcionario.setor}, Salário: R$ {funcionario.salario:.2f}, Telefone: {funcionario.telefone}")
     sessao.close()
-    return lista_funcionarios
 
-def pesquisar_um_funcionario(cpf):
+def buscar_funcionario(cpf):
     sessao = Sessao()
-    funcionario = sessao.execute("SELECT * FROM funcionarios WHERE cpf = :cpf", {'cpf': cpf}).fetchone()
+    funcionario = sessao.query(Funcionario).filter(Funcionario.cpf == cpf).first()
     sessao.close()
     return funcionario
 
-def atualizar_funcionario(funcionario):
+def atualizar_funcionario(cpf, nome, idade, setor, funcao, salario, telefone):
     sessao = Sessao()
-    sessao.execute(
-        "UPDATE funcionarios SET nome = :nome, idade = :idade, setor = :setor, funcao = :funcao, salario = :salario, telefone = :telefone WHERE cpf = :cpf",
-        {'nome': funcionario.nome, 'idade': funcionario.idade, 'setor': funcionario.setor, 'funcao': funcionario.funcao, 'salario': funcionario.salario, 'telefone': funcionario.telefone, 'cpf': funcionario.cpf}
-    )
-    sessao.commit()
+    funcionario = buscar_funcionario(cpf)
+    if funcionario:
+        funcionario.nome = nome
+        funcionario.idade = idade
+        funcionario.setor = setor
+        funcionario.funcao = funcao
+        funcionario.salario = salario
+        funcionario.telefone = telefone
+        sessao.commit()
+        print("Funcionário atualizado!")
+    else:
+        print("Funcionário não encontrado.")
     sessao.close()
-    print("Funcionário atualizado com sucesso!")
 
 def excluir_funcionario(cpf):
     sessao = Sessao()
-    sessao.execute("DELETE FROM funcionarios WHERE cpf = :cpf", {'cpf': cpf})
-    sessao.commit()
+    funcionario = buscar_funcionario(cpf)
+    if funcionario:
+        sessao.delete(funcionario)
+        sessao.commit()
+        print("Funcionário excluído!")
+    else:
+        print("Funcionário não encontrado.")
     sessao.close()
-    print("Funcionário excluído com sucesso!")
 
 while True:
     print("\n=== RH System ===")
     print("1 - Adicionar funcionário")
     print("2 - Consultar um funcionário")
-    print("3 - Atualizar os dados de um funcionário")
-    print("4 - Excluir um funcionário")
+    print("3 - Atualizar funcionário")
+    print("4 - Excluir funcionário")
     print("5 - Listar todos os funcionários")
-    print("0 - Sair do sistema.")
-    
+    print("0 - Sair")
+
     opcao = input("Escolha uma opção: ")
 
     if opcao == '1':
+        cpf = input("CPF: ")
         nome = input("Nome: ")
         idade = int(input("Idade: "))
-        cpf = input("CPF: ")
         setor = input("Setor: ")
         funcao = input("Função: ")
         salario = float(input("Salário: "))
         telefone = input("Telefone: ")
-        funcionario = Funcionario(cpf=cpf, nome=nome, idade=idade, setor=setor, funcao=funcao, salario=salario, telefone=telefone)
-        salvar_funcionario(funcionario)
+        salvar_funcionario(cpf, nome, idade, setor, funcao, salario, telefone)
 
     elif opcao == '2':
         cpf = input("Informe o CPF do funcionário: ")
-        funcionario = pesquisar_um_funcionario(cpf)
+        funcionario = buscar_funcionario(cpf)
         if funcionario:
             print(f"Nome: {funcionario.nome}, Idade: {funcionario.idade}, Setor: {funcionario.setor}, Salário: R$ {funcionario.salario:.2f}, Telefone: {funcionario.telefone}")
         else:
@@ -87,15 +100,15 @@ while True:
 
     elif opcao == '3':
         cpf = input("Informe o CPF do funcionário a ser atualizado: ")
-        funcionario = pesquisar_um_funcionario(cpf)
+        funcionario = buscar_funcionario(cpf)
         if funcionario:
-            funcionario.nome = input("Novo nome: ")
-            funcionario.idade = int(input("Nova idade: "))
-            funcionario.setor = input("Novo setor: ")
-            funcionario.funcao = input("Nova função: ")
-            funcionario.salario = float(input("Novo salário: "))
-            funcionario.telefone = input("Novo telefone: ")
-            atualizar_funcionario(funcionario)
+            nome = input("Novo nome: ")
+            idade = int(input("Nova idade: "))
+            setor = input("Novo setor: ")
+            funcao = input("Nova função: ")
+            salario = float(input("Novo salário: "))
+            telefone = input("Novo telefone: ")
+            atualizar_funcionario(cpf, nome, idade, setor, funcao, salario, telefone)
         else:
             print("Funcionário não encontrado.")
 
@@ -104,12 +117,7 @@ while True:
         excluir_funcionario(cpf)
 
     elif opcao == '5':
-        lista_funcionarios = listar_todos_funcionarios()
-        if lista_funcionarios:
-            for funcionario in lista_funcionarios:
-                print(funcionario)
-        else:
-            print("Nenhum funcionário cadastrado.")
+        listar_funcionarios()
 
     elif opcao == '0':
         break
